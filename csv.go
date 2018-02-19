@@ -4,12 +4,12 @@ import (
 	"bufio"
 	"encoding/csv"
 	"fmt"
+	"github.com/dustin/go-humanize"
 	"io"
 	"log"
 	"os"
 	"strconv"
 	"strings"
-	"github.com/dustin/go-humanize"
 )
 
 type fund struct {
@@ -55,10 +55,10 @@ func main() {
 	getFunds("/home/mwhite/port.csv", funds, "V", false)
 	getFunds("/home/mwhite/portF.csv", funds, "F", false)
 	getFunds("/home/mwhite/portRM.csv", funds, "RM", true)
-	getLMFunds("/home/mwhite/portssp.csv", funds)
+	getLMFunds("/home/mwhite/portssp.csv", funds) // SSP and CAP
 
 	normalizeYields(funds)
-	
+
 	fmt.Printf("retirement: $%s\n", humanize.FormatFloat("#,###.##", float64(retirement)))
 	fmt.Printf("non-retirement: $%s\n", humanize.FormatFloat("#,###.##", float64(nonRetirement)))
 	//fmt.Println(funds)
