@@ -115,7 +115,7 @@ func normalizeYields(fundMap map[string][]fund) {
 		s, _ := strconv.ParseFloat(tmp[1], 32)
 		sum := float32(s)
 
-		for i:=0; i<len(acct); i++ {
+		for i := 0; i < len(acct); i++ {
 			pct := acct[i].Total / sum
 			acct[i].YTDN = pct * acct[i].YTD
 			acct[i].ThreeMonthYeildN = pct * acct[i].ThreeMonthYeild
@@ -128,7 +128,6 @@ func normalizeYields(fundMap map[string][]fund) {
 			acct[i].Allocation.BondN = pct * acct[i].Allocation.Bond
 			acct[i].Allocation.OtherN = pct * acct[i].Allocation.Other
 		}
-
 	}
 }
 
