@@ -209,7 +209,7 @@ func getIntFromString(s string) int {
 }
 
 func getFloat32FromString(s string) float32 {
-	var smod string = s
+	var smod = s
 	if strings.Contains(smod, "%") {
 		smod = strings.Replace(smod, "%", "", -1)
 	}
