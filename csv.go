@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"github.com/dustin/go-humanize"
 )
 
 type fund struct {
@@ -45,15 +46,81 @@ type allocation struct {
 	OtherN         float32
 }
 
+// global
+var retirement float32
+var nonRetirement float32
+
 func main() {
 	funds := make(map[string][]fund)
-	getFunds("/home/mwhite/port.csv", funds, "V")
-	getFunds("/home/mwhite/portRM.csv", funds, "RM")
+	getFunds("/home/mwhite/port.csv", funds, "V", false)
+	getFunds("/home/mwhite/portF.csv", funds, "F", false)
+	getFunds("/home/mwhite/portRM.csv", funds, "RM", true)
+	getLMFunds("/home/mwhite/portssp.csv", funds)
+
 	normalizeYields(funds)
-	fmt.Println(funds)
+	
+	fmt.Printf("retirement: $%s\n", humanize.FormatFloat("#,###.##", float64(retirement)))
+	fmt.Printf("non-retirement: $%s\n", humanize.FormatFloat("#,###.##", float64(nonRetirement)))
+	//fmt.Println(funds)
 }
 
-func getFunds(filename string, fundMap map[string][]fund, name string) {
+func getLMFunds(filename string, fundMap map[string][]fund) {
+	f, _ := os.Open(filename)
+	r := csv.NewReader(bufio.NewReader(f))
+	isFirstLine := true
+	var name = "CAP"
+
+	fundList := make([]fund, 0)
+	var sum float32
+	for {
+		record, err := r.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// ignore first line
+		if isFirstLine {
+			isFirstLine = false
+			continue
+		}
+
+		// check if we have a fund
+		if len(record[0]) <= 0 {
+			continue
+		} else if record[0] == "SSP" {
+			key := fmt.Sprintf("%s:%f", name, sum)
+			retirement += sum
+			fundMap[key] = fundList
+			fundList = fundList[:0]
+			name = "SSP"
+			sum = 0
+			continue
+		}
+
+		f := fund{}
+		f.Name = record[0]
+		f.Total = getFloat32FromString(record[7])
+
+		a := allocation{}
+		a.Cash = getFloat32FromString(record[5])
+		a.Domestic = getFloat32FromString(record[2])
+		a.International = getFloat32FromString(record[3])
+		a.Bond = getFloat32FromString(record[4])
+		a.Other = getFloat32FromString(record[6])
+		f.Allocation = a
+		sum += f.Total
+
+		fundList = append(fundList, f)
+	}
+	key := fmt.Sprintf("%s:%f", name, sum)
+	retirement += sum
+	fundMap[key] = fundList
+}
+
+func getFunds(filename string, fundMap map[string][]fund, name string, isRetirement bool) {
 	f, _ := os.Open(filename)
 	r := csv.NewReader(bufio.NewReader(f))
 	isFirstLine := true
@@ -106,6 +173,11 @@ func getFunds(filename string, fundMap map[string][]fund, name string) {
 		fundList = append(fundList, f)
 	}
 	key := fmt.Sprintf("%s:%f", name, sum)
+	if isRetirement {
+		retirement += sum
+	} else {
+		nonRetirement += sum
+	}
 	fundMap[key] = fundList
 }
 
@@ -139,10 +211,13 @@ func getIntFromString(s string) int {
 func getFloat32FromString(s string) float32 {
 	var smod string = s
 	if strings.Contains(smod, "%") {
-		smod = strings.Replace(s, "%", "", -1)
+		smod = strings.Replace(smod, "%", "", -1)
 	}
 	if strings.Contains(smod, "$") {
-		smod = strings.Replace(s, "$", "", -1)
+		smod = strings.Replace(smod, "$", "", -1)
+	}
+	if strings.Contains(smod, ",") {
+		smod = strings.Replace(smod, ",", "", -1)
 	}
 	val, _ := strconv.ParseFloat(smod, 32)
 	return float32(val)
