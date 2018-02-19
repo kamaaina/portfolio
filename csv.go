@@ -22,8 +22,8 @@ type fund struct {
 	Total            float64
 	YTD              float64
 	YTDN             float64
-	ThreeMonthYeild  float64
-	ThreeMonthYeildN float64
+	ThreeMonthYield  float64
+	ThreeMonthYieldN float64
 	OneYearYield     float64
 	OneYearYieldN    float64
 	ThreeYearYield   float64
@@ -131,6 +131,7 @@ func getFunds(filename string, fundMap map[string][]fund, name string, isRetirem
 
 	fundList := make([]fund, 0)
 	var sum float64
+
 	for {
 		record, err := r.Read()
 		if err == io.EOF {
@@ -160,7 +161,7 @@ func getFunds(filename string, fundMap map[string][]fund, name string, isRetirem
 		f.Price = getFloat64FromString(record[5])
 		f.Total = f.Shares * f.Price
 		f.YTD = getFloat64FromString(record[7])
-		f.ThreeMonthYeild = getFloat64FromString(record[9])
+		f.ThreeMonthYield = getFloat64FromString(record[9])
 		f.OneYearYield = getFloat64FromString(record[11])
 		f.ThreeYearYield = getFloat64FromString(record[13])
 		f.FiveYearYield = getFloat64FromString(record[15])
@@ -191,10 +192,16 @@ func normalizeYields(fundMap map[string][]fund) {
 		s, _ := strconv.ParseFloat(tmp[1], 32)
 		sum := float64(s)
 
+		var ytd float64
+		var threeMonth float64
+		var oneYear float64
+		var threeYear float64
+		var fiveYear float64
 		for i := 0; i < len(acct); i++ {
 			pct := acct[i].Total / sum
+
 			acct[i].YTDN = pct * acct[i].YTD
-			acct[i].ThreeMonthYeildN = pct * acct[i].ThreeMonthYeild
+			acct[i].ThreeMonthYieldN = pct * acct[i].ThreeMonthYield
 			acct[i].OneYearYieldN = pct * acct[i].OneYearYield
 			acct[i].ThreeYearYieldN = pct * acct[i].ThreeYearYield
 			acct[i].FiveYearYieldN = pct * acct[i].FiveYearYield
@@ -203,6 +210,18 @@ func normalizeYields(fundMap map[string][]fund) {
 			acct[i].Allocation.InternationalN = pct * acct[i].Allocation.International
 			acct[i].Allocation.BondN = pct * acct[i].Allocation.Bond
 			acct[i].Allocation.OtherN = pct * acct[i].Allocation.Other
+			ytd += acct[i].YTDN
+			threeMonth += acct[i].ThreeMonthYieldN
+			oneYear += acct[i].OneYearYieldN
+			threeYear += acct[i].ThreeYearYieldN
+			fiveYear += acct[i].FiveYearYieldN
+		}
+		if tmp[0] != "SSP" && tmp[0] != "CAP" {
+			fmt.Printf("%s:\tYTD %.2f%s", tmp[0], ytd, "%")
+			fmt.Printf("\t3mo %.2f%s", threeMonth, "%")
+			fmt.Printf("\t1yr %.2f%s", oneYear, "%")
+			fmt.Printf("\t3yr %.2f%s", threeYear, "%")
+			fmt.Printf("\t5yr %.2f%s\n", fiveYear, "%")
 		}
 	}
 }
@@ -213,16 +232,10 @@ func getIntFromString(s string) int {
 }
 
 func getFloat64FromString(s string) float64 {
-	var smod = s
-	if strings.Contains(smod, "%") {
-		smod = strings.Replace(smod, "%", "", -1)
-	}
-	if strings.Contains(smod, "$") {
-		smod = strings.Replace(smod, "$", "", -1)
-	}
-	if strings.Contains(smod, ",") {
-		smod = strings.Replace(smod, ",", "", -1)
-	}
+	var smod = strings.TrimSpace(s)
+	smod = strings.Replace(smod, "%", "", -1)
+	smod = strings.Replace(smod, "$", "", -1)
+	smod = strings.Replace(smod, ",", "", -1)
 	val, _ := strconv.ParseFloat(smod, 32)
 	return val
 }
