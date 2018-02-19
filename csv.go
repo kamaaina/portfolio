@@ -52,12 +52,14 @@ var nonRetirement float64
 
 func main() {
 	funds := make(map[string][]fund)
-	getFunds("/home/mwhite/port.csv", funds, "V", false)
-	getFunds("/home/mwhite/portF.csv", funds, "F", false)
-	getFunds("/home/mwhite/portRM.csv", funds, "RM", true)
-	getFunds("/home/mwhite/portRC.csv", funds, "RC", true)
-	getFunds("/home/mwhite/portira.csv", funds, "IRA", true)
-	getLMFunds("/home/mwhite/portssp.csv", funds) // SSP and CAP
+	getFunds("/Users/mike/mike/port_data/portV.csv", funds, "V", false)
+	getStocks("/Users/mike/mike/port_data/portHEI.csv", funds, "HEI")
+	getFunds("/Users/mike/mike/port_data/portF.csv", funds, "F", false)
+	getFunds("/Users/mike/mike/port_data/portRM.csv", funds, "RM", true)
+	getFunds("/Users/mike/mike/port_data/portTIAA.csv", funds, "TIAA", true)
+	getFunds("/Users/mike/mike/port_data/portRC.csv", funds, "RC", true)
+	getFunds("/Users/mike/mike/port_data/portIRA.csv", funds, "IRA", true)
+	getLMFunds("/Users/mike/mike/port_data/portLM.csv", funds) // SSP and CAP
 
 	normalizeYields(funds)
 
@@ -66,6 +68,57 @@ func main() {
 	fmt.Printf("non-retirement: %s\n", ac.FormatMoney(nonRetirement))
 	fmt.Printf("total: %s\n", ac.FormatMoney(nonRetirement+retirement))
 	//fmt.Println(funds)
+}
+
+func getStocks(filename string, fundMap map[string][]fund, name string) {
+	f, _ := os.Open(filename)
+	r := csv.NewReader(bufio.NewReader(f))
+	isFirstLine := true
+
+	fundList := make([]fund, 0)
+	var sum float64
+
+	for {
+		record, err := r.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// ignore first line
+		if isFirstLine {
+			isFirstLine = false
+			continue
+		}
+
+		// check if we have a fund
+		if len(record[0]) <= 0 {
+			continue
+		}
+
+		f := fund{}
+		f.Ticker = record[0]
+		f.Name = record[1]
+		f.Shares = getFloat64FromString(record[2])
+		f.Price = getFloat64FromString(record[3])
+		f.Total = f.Shares * f.Price
+
+		a := allocation{}
+		a.Cash = 0.0
+		a.Domestic = 100.0
+		a.International = 0.0
+		a.Bond = 0.0
+		a.Other = 0.0
+		f.Allocation = a
+		sum += f.Shares * f.Price
+
+		fundList = append(fundList, f)
+	}
+	key := fmt.Sprintf("%s:%f", name, sum)
+	nonRetirement += sum
+	fundMap[key] = fundList
 }
 
 func getLMFunds(filename string, fundMap map[string][]fund) {
@@ -216,7 +269,7 @@ func normalizeYields(fundMap map[string][]fund) {
 			threeYear += acct[i].ThreeYearYieldN
 			fiveYear += acct[i].FiveYearYieldN
 		}
-		if tmp[0] != "SSP" && tmp[0] != "CAP" {
+		if tmp[0] != "SSP" && tmp[0] != "CAP" && tmp[0] != "HEI" {
 			fmt.Printf("%s:\tYTD %.2f%s", tmp[0], ytd, "%")
 			fmt.Printf("\t3mo %.2f%s", threeMonth, "%")
 			fmt.Printf("\t1yr %.2f%s", oneYear, "%")
