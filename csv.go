@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"encoding/csv"
 	"fmt"
-	"github.com/dustin/go-humanize"
+	"github.com/leekchan/accounting"
 	"io"
 	"log"
 	"os"
@@ -16,51 +16,55 @@ type fund struct {
 	Ticker           string
 	Name             string
 	Rating           int
-	ExpenseRatio     float32
-	Shares           float32
-	Price            float32
-	Total            float32
-	YTD              float32
-	YTDN             float32
-	ThreeMonthYeild  float32
-	ThreeMonthYeildN float32
-	OneYearYield     float32
-	OneYearYieldN    float32
-	ThreeYearYield   float32
-	ThreeYearYieldN  float32
-	FiveYearYield    float32
-	FiveYearYieldN   float32
+	ExpenseRatio     float64
+	Shares           float64
+	Price            float64
+	Total            float64
+	YTD              float64
+	YTDN             float64
+	ThreeMonthYeild  float64
+	ThreeMonthYeildN float64
+	OneYearYield     float64
+	OneYearYieldN    float64
+	ThreeYearYield   float64
+	ThreeYearYieldN  float64
+	FiveYearYield    float64
+	FiveYearYieldN   float64
 	Allocation       allocation
 }
 
 type allocation struct {
-	Cash           float32
-	CashN          float32
-	Domestic       float32
-	DomesticN      float32
-	International  float32
-	InternationalN float32
-	Bond           float32
-	BondN          float32
-	Other          float32
-	OtherN         float32
+	Cash           float64
+	CashN          float64
+	Domestic       float64
+	DomesticN      float64
+	International  float64
+	InternationalN float64
+	Bond           float64
+	BondN          float64
+	Other          float64
+	OtherN         float64
 }
 
 // global
-var retirement float32
-var nonRetirement float32
+var retirement float64
+var nonRetirement float64
 
 func main() {
 	funds := make(map[string][]fund)
 	getFunds("/home/mwhite/port.csv", funds, "V", false)
 	getFunds("/home/mwhite/portF.csv", funds, "F", false)
 	getFunds("/home/mwhite/portRM.csv", funds, "RM", true)
+	getFunds("/home/mwhite/portRC.csv", funds, "RC", true)
+	getFunds("/home/mwhite/portira.csv", funds, "IRA", true)
 	getLMFunds("/home/mwhite/portssp.csv", funds) // SSP and CAP
 
 	normalizeYields(funds)
 
-	fmt.Printf("retirement: $%s\n", humanize.FormatFloat("#,###.##", float64(retirement)))
-	fmt.Printf("non-retirement: $%s\n", humanize.FormatFloat("#,###.##", float64(nonRetirement)))
+	ac := accounting.Accounting{Symbol: "$", Precision: 2}
+	fmt.Printf("retirement: %s\n", ac.FormatMoney(retirement))
+	fmt.Printf("non-retirement: %s\n", ac.FormatMoney(nonRetirement))
+	fmt.Printf("total: %s\n", ac.FormatMoney(nonRetirement+retirement))
 	//fmt.Println(funds)
 }
 
@@ -71,7 +75,7 @@ func getLMFunds(filename string, fundMap map[string][]fund) {
 	var name = "CAP"
 
 	fundList := make([]fund, 0)
-	var sum float32
+	var sum float64
 	for {
 		record, err := r.Read()
 		if err == io.EOF {
@@ -94,7 +98,7 @@ func getLMFunds(filename string, fundMap map[string][]fund) {
 			key := fmt.Sprintf("%s:%f", name, sum)
 			retirement += sum
 			fundMap[key] = fundList
-			fundList = fundList[:0]
+			fundList = fundList[:0] // delete items in the slice
 			name = "SSP"
 			sum = 0
 			continue
@@ -102,14 +106,14 @@ func getLMFunds(filename string, fundMap map[string][]fund) {
 
 		f := fund{}
 		f.Name = record[0]
-		f.Total = getFloat32FromString(record[7])
+		f.Total = getFloat64FromString(record[7])
 
 		a := allocation{}
-		a.Cash = getFloat32FromString(record[5])
-		a.Domestic = getFloat32FromString(record[2])
-		a.International = getFloat32FromString(record[3])
-		a.Bond = getFloat32FromString(record[4])
-		a.Other = getFloat32FromString(record[6])
+		a.Cash = getFloat64FromString(record[5])
+		a.Domestic = getFloat64FromString(record[2])
+		a.International = getFloat64FromString(record[3])
+		a.Bond = getFloat64FromString(record[4])
+		a.Other = getFloat64FromString(record[6])
 		f.Allocation = a
 		sum += f.Total
 
@@ -126,7 +130,7 @@ func getFunds(filename string, fundMap map[string][]fund, name string, isRetirem
 	isFirstLine := true
 
 	fundList := make([]fund, 0)
-	var sum float32
+	var sum float64
 	for {
 		record, err := r.Read()
 		if err == io.EOF {
@@ -151,22 +155,22 @@ func getFunds(filename string, fundMap map[string][]fund, name string, isRetirem
 		f.Ticker = record[0]
 		f.Name = record[1]
 		f.Rating = getIntFromString(record[2])
-		f.ExpenseRatio = getFloat32FromString(record[3])
-		f.Shares = getFloat32FromString(record[4])
-		f.Price = getFloat32FromString(record[5])
+		f.ExpenseRatio = getFloat64FromString(record[3])
+		f.Shares = getFloat64FromString(record[4])
+		f.Price = getFloat64FromString(record[5])
 		f.Total = f.Shares * f.Price
-		f.YTD = getFloat32FromString(record[7])
-		f.ThreeMonthYeild = getFloat32FromString(record[9])
-		f.OneYearYield = getFloat32FromString(record[11])
-		f.ThreeYearYield = getFloat32FromString(record[13])
-		f.FiveYearYield = getFloat32FromString(record[15])
+		f.YTD = getFloat64FromString(record[7])
+		f.ThreeMonthYeild = getFloat64FromString(record[9])
+		f.OneYearYield = getFloat64FromString(record[11])
+		f.ThreeYearYield = getFloat64FromString(record[13])
+		f.FiveYearYield = getFloat64FromString(record[15])
 
 		a := allocation{}
-		a.Cash = getFloat32FromString(record[17])
-		a.Domestic = getFloat32FromString(record[18])
-		a.International = getFloat32FromString(record[19])
-		a.Bond = getFloat32FromString(record[20])
-		a.Other = getFloat32FromString(record[21])
+		a.Cash = getFloat64FromString(record[17])
+		a.Domestic = getFloat64FromString(record[18])
+		a.International = getFloat64FromString(record[19])
+		a.Bond = getFloat64FromString(record[20])
+		a.Other = getFloat64FromString(record[21])
 		f.Allocation = a
 		sum += f.Shares * f.Price
 
@@ -185,7 +189,7 @@ func normalizeYields(fundMap map[string][]fund) {
 	for key, acct := range fundMap {
 		tmp := strings.Split(key, ":") // name:sum
 		s, _ := strconv.ParseFloat(tmp[1], 32)
-		sum := float32(s)
+		sum := float64(s)
 
 		for i := 0; i < len(acct); i++ {
 			pct := acct[i].Total / sum
@@ -208,7 +212,7 @@ func getIntFromString(s string) int {
 	return val
 }
 
-func getFloat32FromString(s string) float32 {
+func getFloat64FromString(s string) float64 {
 	var smod = s
 	if strings.Contains(smod, "%") {
 		smod = strings.Replace(smod, "%", "", -1)
@@ -220,5 +224,5 @@ func getFloat32FromString(s string) float32 {
 		smod = strings.Replace(smod, ",", "", -1)
 	}
 	val, _ := strconv.ParseFloat(smod, 32)
-	return float32(val)
+	return val
 }
