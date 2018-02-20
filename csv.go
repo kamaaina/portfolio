@@ -2,16 +2,16 @@ package main
 
 import (
 	"bufio"
+	"database/sql"
 	"encoding/csv"
 	"fmt"
-	"github.com/leekchan/accounting"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/leekchan/accounting"
 	"io"
 	"log"
 	"os"
 	"strconv"
 	"strings"
-	"database/sql"
 	"time"
 )
 
@@ -53,23 +53,21 @@ type allocation struct {
 var retirement float64
 var nonRetirement float64
 
-const ACCT_INSERT = "INSERT INTO accounts(name, is_retirement) VALUES(?, ?)"
-const FUND_INSERT = "INSERT INTO fund(ticker, name, morningstar_rating, expense_ratio, shares, price, account_id) VALUES(?, ?, ?, ?, ?, ?, ?)"
-const ASSET_ALLOCATION_INSERT = "INSERT INTO asset_allocation(fund_id, cash, domestic, international, bonds, other) VALUES(?, ?, ?, ?, ?, ?)"
-const PERF_INSERT = "INSERT INTO performance(fund_id, ytd, three_month, one_year, three_year, five_year) VALUES(?, ?, ?, ?, ?, ?)"
+const acctInsert = "INSERT INTO accounts(name, is_retirement) VALUES(?, ?)"
+const fundInsert = "INSERT INTO fund(ticker, name, morningstar_rating, expense_ratio, shares, price, account_id) VALUES(?, ?, ?, ?, ?, ?, ?)"
+const assetAllocationInsert = "INSERT INTO asset_allocation(fund_id, cash, domestic, international, bonds, other) VALUES(?, ?, ?, ?, ?, ?)"
+const perfInsert = "INSERT INTO performance(fund_id, ytd, three_month, one_year, three_year, five_year) VALUES(?, ?, ?, ?, ?, ?)"
 
 func main() {
 	funds := make(map[string][]fund)
-	getFunds("/home/mwhite/port.csv", funds, "Vanguard", false)
-	/*
-	getStocks("/Users/mike/mike/port_data/portHEI.csv", funds, "HEI")
-	getFunds("/Users/mike/mike/port_data/portF.csv", funds, "F", false)
-	getFunds("/Users/mike/mike/port_data/portRM.csv", funds, "RM", true)
-	getFunds("/Users/mike/mike/port_data/portTIAA.csv", funds, "TIAA", true)
-	getFunds("/Users/mike/mike/port_data/portRC.csv", funds, "RC", true)
-	getFunds("/Users/mike/mike/port_data/portIRA.csv", funds, "IRA", true)
-	getLMFunds("/Users/mike/mike/port_data/portLM.csv", funds) // SSP and CAP
-*/
+	getFunds("/home/mwhite/port.csv", funds, "V", false)
+	//getStocks("/Users/mike/mike/port_data/portHEI.csv", funds, "HEI")
+	getFunds("/home/mwhite/portF.csv", funds, "F", false)
+	getFunds("/home/mwhite/portRM.csv", funds, "RM", true)
+	//getFunds("/Users/mike/mike/port_data/portTIAA.csv", funds, "TIAA", true)
+	getFunds("/home/mwhite/portRC.csv", funds, "RC", true)
+	getFunds("/home/mwhite/portira.csv", funds, "IRA", true)
+	getLMFunds("/home/mwhite/portssp.csv", funds) // SSP and CAP
 
 	db, err := sql.Open("mysql", fmt.Sprintf("mike:mike@tcp(%s:3306)/portfolio", "192.168.2.41"))
 	if err != nil {
@@ -272,45 +270,45 @@ func normalizeYields(fundMap map[string][]fund, db *sql.DB) {
 		s, _ := strconv.ParseFloat(tmp[1], 32)
 
 		// FIXME: check for dups!
-		
+
 		// insert into accounts
-		acctIns, err := db.Prepare(ACCT_INSERT)
+		acctIns, err := db.Prepare(acctInsert)
 		if err != nil {
 			panic(err.Error())
 		}
 		defer acctIns.Close()
-		result, e := acctIns.Exec(tmp[0], false)  // FIXME - hardcode to false
+		result, e := acctIns.Exec(tmp[0], false) // FIXME - hardcode to false
 		if e != nil {
 			panic(e.Error())
 		}
-		var acctId int64
-		var fundId int64
-		acctId, err = result.LastInsertId()
+		var acctID int64
+		var fundID int64
+		acctID, err = result.LastInsertId()
 		if err != nil {
-			panic (err.Error())
+			panic(err.Error())
 		}
 
 		// fund
-		fundIns, fundErr := db.Prepare(FUND_INSERT)
+		fundIns, fundErr := db.Prepare(fundInsert)
 		if fundErr != nil {
 			panic(fundErr.Error())
 		}
 		defer fundIns.Close()
 
 		// asset allocation
-		assetAllocIns, aaErr := db.Prepare(ASSET_ALLOCATION_INSERT)
+		assetAllocIns, aaErr := db.Prepare(assetAllocationInsert)
 		if aaErr != nil {
 			panic(aaErr.Error())
 		}
 		defer assetAllocIns.Close()
 
 		// performance
-		perfIns, perfErr := db.Prepare(PERF_INSERT)
+		perfIns, perfErr := db.Prepare(perfInsert)
 		if perfErr != nil {
 			panic(perfErr.Error())
 		}
 		defer perfIns.Close()
-		
+
 		sum := float64(s)
 
 		var ytd float64
@@ -337,23 +335,23 @@ func normalizeYields(fundMap map[string][]fund, db *sql.DB) {
 			oneYear += acct[i].OneYearYieldN
 			threeYear += acct[i].ThreeYearYieldN
 			fiveYear += acct[i].FiveYearYieldN
-			fundRes, err = fundIns.Exec(acct[i].Ticker, acct[i].Name, acct[i].Rating, acct[i].ExpenseRatio, acct[i].Shares, acct[i].Price, acctId)
+			fundRes, err = fundIns.Exec(acct[i].Ticker, acct[i].Name, acct[i].Rating, acct[i].ExpenseRatio, acct[i].Shares, acct[i].Price, acctID)
 			if err != nil {
 				panic(err.Error())
 			}
-			fundId, err = fundRes.LastInsertId()
+			fundID, err = fundRes.LastInsertId()
 			if err != nil {
-				panic (err.Error())
+				panic(err.Error())
 			}
 
 			// asset allocation
-			_, err = assetAllocIns.Exec(fundId, acct[i].Allocation.Cash, acct[i].Allocation.Domestic, acct[i].Allocation.International, acct[i].Allocation.Bond, acct[i].Allocation.Other)
+			_, err = assetAllocIns.Exec(fundID, acct[i].Allocation.Cash, acct[i].Allocation.Domestic, acct[i].Allocation.International, acct[i].Allocation.Bond, acct[i].Allocation.Other)
 			if err != nil {
 				panic(err.Error())
 			}
 
 			// performance
-			_, err = perfIns.Exec(fundId, acct[i].YTD, acct[i].ThreeMonthYield, acct[i].OneYearYield, acct[i].ThreeYearYield, acct[i].FiveYearYield)
+			_, err = perfIns.Exec(fundID, acct[i].YTD, acct[i].ThreeMonthYield, acct[i].OneYearYield, acct[i].ThreeYearYield, acct[i].FiveYearYield)
 		}
 		if tmp[0] != "SSP" && tmp[0] != "CAP" && tmp[0] != "HEI" {
 			fmt.Printf("%s:\tYTD %.2f%s", tmp[0], ytd, "%")

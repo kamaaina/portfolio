@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"database/sql"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -17,7 +17,7 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
-	
+
 	fmt.Print("Dropping tables...")
 	tables := []string{"asset_allocation", "performance", "fund", "accounts", "summary", "totals"}
 	for _, table := range tables {
