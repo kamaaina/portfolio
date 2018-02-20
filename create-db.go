@@ -57,7 +57,7 @@ func createTable(table string, db *sql.DB) {
 	case "fund":
 		sql = "CREATE TABLE `fund` (`id` int(11) NOT NULL AUTO_INCREMENT, `ticker` varchar(5) DEFAULT NULL, `name` varchar(64) NOT NULL, `morningstar_rating` tinyint(1) DEFAULT NULL, `expense_ratio` double DEFAULT NULL, `shares` double DEFAULT NULL, `price` double DEFAULT NULL, `account_id` int(11) DEFAULT NULL, PRIMARY KEY (`id`), FOREIGN KEY (`account_id`) REFERENCES `accounts` (`id`) ON DELETE CASCADE ON UPDATE CASCADE) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;"
 	case "performance":
-		sql = "CREATE TABLE `performance` (`id` int(11) NOT NULL AUTO_INCREMENT, `fund_id` int(11) DEFAULT NULL, `ytd` double DEFAULT NULL, `one_year` double DEFAULT NULL, `three_year` double DEFAULT NULL, `fie_year` double DEFAULT NULL, PRIMARY KEY (`id`), FOREIGN KEY (`fund_id`) REFERENCES `fund` (`id`) ON DELETE CASCADE ON UPDATE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8;"
+		sql = "CREATE TABLE `performance` (`id` int(11) NOT NULL AUTO_INCREMENT, `fund_id` int(11) DEFAULT NULL, `ytd` double DEFAULT NULL, `three_month` double DEFAULT NULL, `one_year` double DEFAULT NULL, `three_year` double DEFAULT NULL, `five_year` double DEFAULT NULL, PRIMARY KEY (`id`), FOREIGN KEY (`fund_id`) REFERENCES `fund` (`id`) ON DELETE CASCADE ON UPDATE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8;"
 	case "summary":
 		sql = "CREATE TABLE `summary` (`id` int(11) NOT NULL AUTO_INCREMENT, `key` varchar(45) DEFAULT NULL, `value` varchar(45) DEFAULT NULL, PRIMARY KEY (`id`), KEY `id_sum_key_index` (`key`)) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8;"
 	case "totals":
