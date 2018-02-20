@@ -1,0 +1,97 @@
+<html>
+<head>
+  <title>Portfolio</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+
+  <ul class="nav nav-tabs">
+    {{ range $index, $accts := .Accounts }}
+    {{ if eq 0 $index }}
+    <li class="active"><a data-toggle="tab" href="#{{$accts}}">{{$accts}}</a></li>
+    {{ else }}
+    <li><a data-toggle="tab" href="#{{$accts}}">{{$accts}}</a></li>
+    {{ end }}
+    {{ end }}
+  </ul>
+
+  <div class="tab-content">
+    {{ range $index, $accts := .Accounts }}
+    {{ if eq 0 $index }}
+    <div id="{{$accts}}" class="tab-pane fade in active">
+      {{ else }}
+      <div id="{{$accts}}" class="tab-pane fade">
+        {{ end }}      
+      <h3>{{ $accts}}</h3>
+    </div>
+    {{ end }}
+
+
+
+    <!--
+    <div id="menu1" class="tab-pane fade">
+      <h3>Menu 1</h3>
+    </div>
+    <div id="menu2" class="tab-pane fade">
+      <table class="table">
+    <thead>
+      <tr>
+        <th>Firstname</th>
+        <th>Lastname</th>
+        <th>Email</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="default123">
+        <td>Default</td>
+        <td>Defaultson</td>
+        <td>def@somemail.com</td>
+      </tr>      
+      <tr class="success">
+        <td>Success</td>
+        <td>Doe</td>
+        <td>john@example.com</td>
+      </tr>
+      <tr class="danger">
+        <td>Danger</td>
+        <td>Moe</td>
+        <td>mary@example.com</td>
+      </tr>
+      <tr class="info">
+        <td>Info</td>
+        <td>Dooley</td>
+        <td>july@example.com</td>
+      </tr>
+      <tr class="warning">
+        <td>Warning</td>
+        <td>Refs</td>
+        <td>bo@example.com</td>
+      </tr>
+      <tr class="active">
+        <td>Active</td>
+        <td>Activeson</td>
+        <td>act@example.com</td>
+      </tr>
+    </tbody>
+  </table>
+    </div>
+    <div id="menu3" class="tab-pane fade">
+      <h3>Menu 3</h3>
+    </div>
+-->
+  </div>
+  
+  <hr>
+  <h4>---------------------HERE-------------------------</h4>
+</div>
+
+
+</body>
+</html>
+

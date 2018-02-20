@@ -3,15 +3,25 @@ package main
 import ("net/http"
 	"html/template")
 
-type Person struct {
-	Firstname string
-	Lastname string
+type Data struct {
+	Accounts []string
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	person := Person{Firstname: "Mike", Lastname: "White"}
-	t, _ := template.ParseFiles("personTemplate.html")
-	t.Execute(w, person)
+	accts := make([]string, 0)
+	accts = append(accts, "V")
+	accts = append(accts, "F")
+	accts = append(accts, "RM")
+	accts = append(accts, "RC")
+	accts = append(accts, "IRA")
+	
+	data := Data{Accounts: accts}
+	t, _ := template.ParseFiles("portfolioTemplate.html")
+	
+	err := t.Execute(w, data)
+	if err != nil {
+		panic(err.Error())
+	}
 }
 
 func main() {
